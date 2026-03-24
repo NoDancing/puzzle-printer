@@ -1,0 +1,10 @@
+services:
+  puzzle-printer:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - ./logs:/var/log/puzzle-printer
