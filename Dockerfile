@@ -19,7 +19,7 @@ COPY --from=builder /app/puzzle-printer /usr/local/bin/puzzle-printer
 COPY docker/crontab /etc/crontabs/root
 
 # Logs live here; mount a volume to persist them
-RUN mkdir -p /var/log/puzzle-printer
+RUN mkdir -p /var/log/puzzle-printer /run/secrets
 ENV TZ=America/New_York
 
 # Run cron in the foreground
