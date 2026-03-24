@@ -78,18 +78,39 @@ func run() error {
 		}
 		remoteFile := fmt.Sprintf("crossword-%s.pdf", date.Format("2006-01-02"))
 		dest := cfg.Upload.Host + ":" + remotePath + remoteFile
-		cmd := exec.Command("scp",
-			"-i", cfg.Upload.KeyPath,
-			"-o", "StrictHostKeyChecking=no",
-			pdfPath, dest,
-		)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		fmt.Printf("Uploading to %s...\n", dest)
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "warning: upload failed: %v\n", err)
+
+		// Copy key to a temp file with strict permissions (0600) so scp accepts it,
+		// since the mounted file may have overly broad permissions.
+		keyData, err := os.ReadFile(cfg.Upload.KeyPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: reading upload key: %v\n", err)
 		} else {
-			fmt.Println("Upload complete.")
+			tmpKey, err := os.CreateTemp("", "scp-key-*")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "warning: creating temp key: %v\n", err)
+			} else {
+				tmpKeyPath := tmpKey.Name()
+				defer os.Remove(tmpKeyPath)
+				if err := tmpKey.Chmod(0600); err == nil {
+					if _, err := tmpKey.Write(keyData); err == nil {
+						tmpKey.Close()
+						cmd := exec.Command("scp",
+							"-i", tmpKeyPath,
+							"-o", "StrictHostKeyChecking=no",
+							pdfPath, dest,
+						)
+						cmd.Stdout = os.Stdout
+						cmd.Stderr = os.Stderr
+						fmt.Printf("Uploading to %s...\n", dest)
+						if err := cmd.Run(); err != nil {
+							fmt.Fprintf(os.Stderr, "warning: upload failed: %v\n", err)
+						} else {
+							fmt.Println("Upload complete.")
+						}
+					}
+				}
+				tmpKey.Close()
+			}
 		}
 	}
 
