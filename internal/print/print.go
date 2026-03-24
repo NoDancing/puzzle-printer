@@ -60,6 +60,8 @@ func printIPP(pdfPath, printerURI string) error {
 	req.OperationAttributes[ipp.AttributeJobName] = "crossword.pdf"
 	req.OperationAttributes[ipp.AttributeDocumentFormat] = "application/pdf"
 	req.OperationAttributes[ipp.AttributeCopies] = 1
+	req.File = f
+	req.FileSize = -1
 
 	proto := "http"
 	if useTLS {
@@ -67,7 +69,7 @@ func printIPP(pdfPath, printerURI string) error {
 	}
 	httpURL := fmt.Sprintf("%s://%s:%d%s", proto, u.Hostname(), port, u.Path)
 
-	resp, err := client.SendRequest(httpURL, req, f)
+	resp, err := client.SendRequest(httpURL, req, nil)
 	if err != nil {
 		return fmt.Errorf("IPP print job: %w", err)
 	}
