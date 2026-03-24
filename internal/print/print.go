@@ -2,17 +2,13 @@ package print
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
-
-	ipp "github.com/phin1x/go-ipp"
 )
 
 // ToPrinter sends pdfPath to the named printer (empty = system default).
-// If printer is an IPP URI, submits directly via the IPP protocol.
+// If printer is an IPP URI, converts PDF to URF and submits via ipptool.
 // Otherwise passes it as a CUPS destination name to lp.
 func ToPrinter(pdfPath, printer string) error {
 	if strings.HasPrefix(printer, "ipp://") || strings.HasPrefix(printer, "ipps://") {
@@ -34,49 +30,55 @@ func ToPrinter(pdfPath, printer string) error {
 }
 
 func printIPP(pdfPath, printerURI string) error {
-	u, err := url.Parse(printerURI)
+	// Convert PDF to URF (AirPrint raster format) — Brother printers don't
+	// accept PDF directly over IPP; they need URF or PWG Raster.
+	urfPath := pdfPath + ".urf"
+	defer os.Remove(urfPath)
+
+	gs := exec.Command("gs",
+		"-dBATCH", "-dNOPAUSE", "-dQUIET",
+		"-sDEVICE=urfgray", "-r600",
+		"-sOutputFile="+urfPath,
+		pdfPath,
+	)
+	gs.Stdout = os.Stdout
+	gs.Stderr = os.Stderr
+	if err := gs.Run(); err != nil {
+		return fmt.Errorf("converting PDF to URF: %w", err)
+	}
+
+	// Write a temporary ipptool test file
+	testFile, err := os.CreateTemp("", "ipp-*.test")
 	if err != nil {
-		return fmt.Errorf("parsing printer URI: %w", err)
+		return fmt.Errorf("creating ipptool test file: %w", err)
 	}
+	defer os.Remove(testFile.Name())
 
-	port := 631
-	if p := u.Port(); p != "" {
-		if n, err := strconv.Atoi(p); err == nil {
-			port = n
-		}
-	}
-	useTLS := u.Scheme == "ipps"
-	client := ipp.NewIPPClient(u.Hostname(), port, "", "", useTLS)
-
-	f, err := os.Open(pdfPath)
+	_, err = fmt.Fprintf(testFile, `{
+    NAME "Print-Job"
+    OPERATION Print-Job
+    GROUP operation-attributes-tag
+    ATTR charset attributes-charset utf-8
+    ATTR language attributes-natural-language en
+    ATTR uri printer-uri "%s"
+    ATTR name requesting-user-name "puzzle-printer"
+    ATTR name job-name "crossword.pdf"
+    ATTR mimeMediaType document-format "image/urf"
+    FILE %s
+    STATUS successful-ok
+}
+`, printerURI, urfPath)
+	testFile.Close()
 	if err != nil {
-		return fmt.Errorf("opening PDF: %w", err)
+		return fmt.Errorf("writing ipptool test file: %w", err)
 	}
-	defer f.Close()
 
-	req := ipp.NewRequest(ipp.OperationPrintJob, 1)
-	req.OperationAttributes[ipp.AttributePrinterURI] = printerURI
-	req.OperationAttributes[ipp.AttributeRequestingUserName] = "puzzle-printer"
-	req.OperationAttributes[ipp.AttributeJobName] = "crossword.pdf"
-	req.OperationAttributes[ipp.AttributeDocumentFormat] = "application/pdf"
-	req.OperationAttributes[ipp.AttributeCopies] = 1
-	req.File = f
-	req.FileSize = -1
-
-	proto := "http"
-	if useTLS {
-		proto = "https"
+	cmd := exec.Command("ipptool", "-t", printerURI, testFile.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ipptool: %w", err)
 	}
-	httpURL := fmt.Sprintf("%s://%s:%d%s", proto, u.Hostname(), port, u.Path)
-
-	resp, err := client.SendRequest(httpURL, req, nil)
-	if err != nil {
-		return fmt.Errorf("IPP print job: %w", err)
-	}
-	if err := resp.CheckForErrors(); err != nil {
-		return fmt.Errorf("IPP print job: %w", err)
-	}
-	fmt.Println("Print job submitted successfully")
 	return nil
 }
 
