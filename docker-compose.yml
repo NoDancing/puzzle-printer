@@ -8,4 +8,4 @@ services:
       - TZ=America/New_York
     volumes:
       - ./logs:/var/log/puzzle-printer
-      - ~/.ssh/puzzle-site.pem:/run/secrets/puzzle-site.pem:ro
+      - ./puzzle-site.pem:/run/secrets/puzzle-site.pem:ro
