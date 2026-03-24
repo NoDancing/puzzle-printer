@@ -13,21 +13,21 @@ const (
 )
 
 // FetchPDF returns the PDF bytes for the crossword on the given date.
-// On Sundays, it fetches the print edition; other days fetch by puzzle ID.
+// Sundays and past dates use the print URL (constructed from date).
+// Today's weekday uses the metadata API to get the puzzle ID.
 func (c *Client) FetchPDF(date time.Time) ([]byte, error) {
-	if date.Weekday() == time.Sunday {
-		return c.fetchSundayPrintPDF(date)
+	if date.Weekday() == time.Sunday || !isToday(date) {
+		return c.fetchPrintPDF(date)
 	}
 	return c.fetchWeekdayPDF(date)
 }
 
-func (c *Client) fetchSundayPrintPDF(date time.Time) ([]byte, error) {
-	// Format: Mon0226 → "Mar2226" for March 22 2026
+func (c *Client) fetchPrintPDF(date time.Time) ([]byte, error) {
 	dateStr := date.Format("Jan") + fmt.Sprintf("%02d%02d", date.Day(), date.Year()%100)
 	pdfURL := fmt.Sprintf(printPDFURL, dateStr)
 	data, err := c.get(pdfURL)
 	if err != nil {
-		return nil, fmt.Errorf("fetching Sunday print PDF: %w", err)
+		return nil, fmt.Errorf("fetching print PDF: %w", err)
 	}
 	return data, nil
 }

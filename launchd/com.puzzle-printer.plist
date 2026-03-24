@@ -7,13 +7,14 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/puzzle-printer</string>
+        <string>/bin/bash</string>
+        <string>/Users/seancohan/projects/puzzle-printer/save-puzzle.sh</string>
     </array>
 
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>7</integer>
+        <integer>5</integer>
         <key>Minute</key>
         <integer>0</integer>
     </dict>

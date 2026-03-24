@@ -11,8 +11,9 @@ import (
 )
 
 type Config struct {
-	NYT   NYTConfig   `toml:"nyt"`
-	Print PrintConfig `toml:"print"`
+	NYT    NYTConfig    `toml:"nyt"`
+	Print  PrintConfig  `toml:"print"`
+	Upload UploadConfig `toml:"upload"`
 }
 
 type NYTConfig struct {
@@ -23,6 +24,12 @@ type NYTConfig struct {
 
 type PrintConfig struct {
 	Printer string `toml:"printer"`
+}
+
+type UploadConfig struct {
+	Host       string `toml:"host"`
+	KeyPath    string `toml:"key_path"`
+	RemotePath string `toml:"remote_path"`
 }
 
 func Load() (*Config, error) {
@@ -57,6 +64,15 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("PRINTER"); v != "" {
 		cfg.Print.Printer = v
+	}
+	if v := os.Getenv("UPLOAD_HOST"); v != "" {
+		cfg.Upload.Host = v
+	}
+	if v := os.Getenv("UPLOAD_KEY_PATH"); v != "" {
+		cfg.Upload.KeyPath = v
+	}
+	if v := os.Getenv("UPLOAD_REMOTE_PATH"); v != "" {
+		cfg.Upload.RemotePath = v
 	}
 
 	// 4. Resolve any remaining op:// references via the 1Password CLI

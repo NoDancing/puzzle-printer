@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/seancohan/puzzle-printer/internal/config"
@@ -67,6 +68,29 @@ func run() error {
 
 	if err := os.WriteFile(pdfPath, pdf, 0644); err != nil {
 		return fmt.Errorf("writing PDF: %w", err)
+	}
+
+	// Upload to remote server if configured
+	if cfg.Upload.Host != "" && cfg.Upload.KeyPath != "" {
+		remotePath := cfg.Upload.RemotePath
+		if remotePath == "" {
+			remotePath = "~/puzzle-site/pdfs/"
+		}
+		remoteFile := fmt.Sprintf("crossword-%s.pdf", date.Format("2006-01-02"))
+		dest := cfg.Upload.Host + ":" + remotePath + remoteFile
+		cmd := exec.Command("scp",
+			"-i", cfg.Upload.KeyPath,
+			"-o", "StrictHostKeyChecking=no",
+			pdfPath, dest,
+		)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		fmt.Printf("Uploading to %s...\n", dest)
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: upload failed: %v\n", err)
+		} else {
+			fmt.Println("Upload complete.")
+		}
 	}
 
 	// Print or open

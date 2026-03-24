@@ -13,7 +13,7 @@ FROM alpine:3.19
 # cups-client provides lp for IPP network printing
 # dcron is a lightweight cron daemon
 # tzdata allows TZ env var to set the container timezone
-RUN apk add --no-cache cups-client dcron ghostscript tzdata
+RUN apk add --no-cache cups-client dcron ghostscript openssh-client tzdata
 
 COPY --from=builder /app/puzzle-printer /usr/local/bin/puzzle-printer
 COPY docker/crontab /etc/crontabs/root
