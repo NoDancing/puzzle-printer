@@ -60,17 +60,15 @@ func (c *Client) fetchPuzzleID(date time.Time) (int, error) {
 	}
 
 	var result struct {
-		Results []struct {
-			PuzzleID int `json:"puzzle_id"`
-		} `json:"results"`
+		ID int `json:"id"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
 		return 0, fmt.Errorf("parsing puzzle metadata: %w", err)
 	}
-	if len(result.Results) == 0 || result.Results[0].PuzzleID == 0 {
+	if result.ID == 0 {
 		return 0, fmt.Errorf("no puzzle ID found in metadata response")
 	}
-	return result.Results[0].PuzzleID, nil
+	return result.ID, nil
 }
 
 func isToday(date time.Time) bool {
