@@ -45,7 +45,8 @@ func printIPP(pdfPath, printerURI string) error {
 			port = n
 		}
 	}
-	client := ipp.NewIPPClient(u.Hostname(), port, "", "", u.Scheme == "ipps")
+	useTLS := u.Scheme == "ipps"
+	client := ipp.NewIPPClient(u.Hostname(), port, "", "", useTLS)
 
 	f, err := os.Open(pdfPath)
 	if err != nil {
@@ -53,18 +54,27 @@ func printIPP(pdfPath, printerURI string) error {
 	}
 	defer f.Close()
 
-	doc := ipp.Document{
-		Document: f,
-		Name:     "crossword.pdf",
-		MimeType: "application/pdf",
-		Size:     -1,
-	}
+	req := ipp.NewRequest(ipp.OperationPrintJob, 1)
+	req.OperationAttributes[ipp.AttributePrinterURI] = printerURI
+	req.OperationAttributes[ipp.AttributeRequestingUserName] = "puzzle-printer"
+	req.OperationAttributes[ipp.AttributeJobName] = "crossword.pdf"
+	req.OperationAttributes[ipp.AttributeDocumentFormat] = "application/pdf"
+	req.OperationAttributes[ipp.AttributeCopies] = 1
 
-	jobID, err := client.PrintJob(doc, u.Path, nil)
+	proto := "http"
+	if useTLS {
+		proto = "https"
+	}
+	httpURL := fmt.Sprintf("%s://%s:%d%s", proto, u.Hostname(), port, u.Path)
+
+	resp, err := client.SendRequest(httpURL, req, f)
 	if err != nil {
 		return fmt.Errorf("IPP print job: %w", err)
 	}
-	fmt.Printf("Print job submitted (id=%d)\n", jobID)
+	if err := resp.CheckForErrors(); err != nil {
+		return fmt.Errorf("IPP print job: %w", err)
+	}
+	fmt.Println("Print job submitted successfully")
 	return nil
 }
 
