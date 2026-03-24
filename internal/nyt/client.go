@@ -18,8 +18,12 @@ type Client struct {
 	token string
 }
 
-func NewClient(email, password string) (*Client, error) {
+func NewClient(email, password, token string) (*Client, error) {
 	c := &Client{http: &http.Client{}}
+	if token != "" {
+		c.token = token
+		return c, nil
+	}
 	if err := c.login(email, password); err != nil {
 		return nil, fmt.Errorf("NYT login failed: %w", err)
 	}

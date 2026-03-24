@@ -44,7 +44,7 @@ func run() error {
 
 	// Authenticate and fetch
 	fmt.Printf("Fetching NYT crossword for %s...\n", date.Format("Monday, January 2 2006"))
-	client, err := nyt.NewClient(cfg.NYT.Email, cfg.NYT.Password)
+	client, err := nyt.NewClient(cfg.NYT.Email, cfg.NYT.Password, cfg.NYT.Token)
 	if err != nil {
 		return err
 	}
