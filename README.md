@@ -1,6 +1,6 @@
 # Puzzle Printer
 
-Fetches the NYT daily crossword PDF and sends it to a printer. Runs on a schechdule on macOS or DOcker.
+Fetches the NYT daily crossword PDF and sends it to a printer. Runs on a schedule on macOS or Docker.
 
 ## Setup
 
