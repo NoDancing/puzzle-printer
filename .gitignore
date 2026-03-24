@@ -1,3 +1,5 @@
 .env
 logs/
 /puzzle-printer
+nyt_s
+*.pem
