@@ -1,2 +1,2 @@
 # Fetch and print the NYT crossword daily at 7:00 AM (timezone set by TZ env var)
-0 5 * * * /usr/local/bin/puzzle-printer >> /var/log/puzzle-printer/puzzle-printer.log 2>&1
+0 5 * * * /usr/local/bin/puzzle-printer
